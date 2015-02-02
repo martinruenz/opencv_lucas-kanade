@@ -65,7 +65,8 @@ void BuildPyramid (cv::Mat const &input, std::vector <cv::Mat> &outputArray, int
     for (int k = 1; k <= maxLevel; ++k)
     {
         cv::Mat prevImage;
-        LowpassFilter (outputArray.at (k - 1), prevImage);
+        //LowpassFilter (outputArray.at (k - 1), prevImage);
+        outputArray.at(k - 1).copyTo(prevImage);
 
         int limRows = (prevImage.rows + 1) / 2;
         int limCols = (prevImage.cols + 1) / 2;
@@ -205,13 +206,17 @@ int LucasKanade (std::vector <cv::Mat> &prevImage, std::vector <cv::Mat> &nextIm
 
 int main (int argc, char **argv)
 {
-   	if (argc != 2)
+   	if (argc > 2)
     {
         printf ("Wrong parameters\n");
 		return -1;
-	}
+	} else if(argc == 1) {
+        printf ("No parameter set => using default camera.\n");
+    } else {
+        printf ("Parameter set => using video.\n");
+    } 
 
-    cv::VideoCapture capture (argv [1]);
+    cv::VideoCapture capture = argc == 1 ? cv::VideoCapture(0) : cv::VideoCapture(argv [1]);
 
 	if (!capture.isOpened ())
     {
@@ -221,10 +226,17 @@ int main (int argc, char **argv)
 
 	double rate = capture.get( CV_CAP_PROP_FPS );
 
+    int delay = 50;
+    if(rate <= 0){
+        printf("FPS not specified. Using 50ms delay.\n");
+    } else {
+        delay = 1000 / rate;
+        printf("Video running with %ffps\n", rate);
+    }
+
 	bool stop (false);
 	cv::Mat frame, gray, grayPrev, prevFrame;
 	cv::namedWindow( "Extracted Frame" );
-	int delay = 1000 / rate;
 
     cv::setMouseCallback ("Extracted Frame", onMouse);
 
@@ -258,7 +270,7 @@ int main (int argc, char **argv)
 		if (cv::waitKey (delay) >= 0) stop = true;
 	}
 	capture.release();
-
+    printf("Terminating...");
     cv::waitKey ();
 
     return 0;
